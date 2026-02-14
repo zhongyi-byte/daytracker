@@ -1,0 +1,52 @@
+name: Build APK
+
+on:
+  push:
+    branches: [ master, main ]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v3
+    
+    - name: Set up JDK 17
+      uses: actions/setup-java@v3
+      with:
+        java-version: '17'
+        distribution: 'temurin'
+        
+    - name: Setup Android SDK
+      uses: android-actions/setup-android@v2
+      
+    - name: Grant execute permission for gradlew
+      run: chmod +x gradlew
+      
+    - name: Build Debug APK
+      run: ./gradlew assembleDebug
+      
+    - name: Upload APK
+      uses: actions/upload-artifact@v3
+      with:
+        name: daytracker-debug-apk
+        path: app/build/outputs/apk/debug/app-debug.apk
+        
+    - name: Create Release
+      if: github.ref == 'refs/heads/master'
+      uses: softprops/action-gh-release@v1
+      with:
+        files: app/build/outputs/apk/debug/app-debug.apk
+        tag_name: v1.0.${{ github.run_number }}
+        name: DayTracker v1.0.${{ github.run_number }}
+        body: |
+          一日轨迹记录器 Debug 版本
+          
+          ⚠️ 注意：此版本使用 Google Maps，需要 Google Play Services
+          
+          使用方法：
+          1. 下载 APK 安装
+          2. 允许位置权限
+          3. 开始记录轨迹
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
